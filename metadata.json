@@ -1,0 +1,6 @@
+{
+  "name": "RM NeuroAI Platform",
+  "description": "منصة الذكاء الاصطناعي للتعليم الخاص والتأهيل الحركي للأطفال - Smart Special Education & Pediatric Motor Rehabilitation Ecosystem",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
