@@ -77,7 +77,7 @@ begin
     raise exception 'An UPDATE policy is missing WITH CHECK';
   end if;
 
-  -- Anonymous users must not have direct table privileges.
+  -- Anonymous users must not have effective table privileges.
   if exists (
     select 1
     from pg_class c
@@ -91,7 +91,7 @@ begin
         or has_table_privilege('anon', c.oid, 'DELETE')
       )
   ) then
-    raise exception 'anon has direct table privileges on a public table';
+    raise exception 'anon has effective table privileges on a public table';
   end if;
 
   -- Authorization helpers must remain SECURITY INVOKER.
