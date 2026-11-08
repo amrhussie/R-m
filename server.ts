@@ -47,7 +47,7 @@ type AuthenticatedRequest = express.Request & { supabase?: SupabaseClient; authU
 app.use("/api", async (req, res, next) => {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_PUBLISHABLE_KEY;
-  const match = (req.header("authorization") || "").match(/^Bearer\\s+(.+)$/i);
+  const match = (req.header("authorization") || "").match(/^Bearer\s+(.+)$/i);
 
   if (!url || !key) {
     return res.status(503).json({ success: false, error: "Supabase server configuration is missing." });
