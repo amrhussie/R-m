@@ -36,9 +36,9 @@ function AppContent() {
       try {
         const [cRes, iRes, sRes, rRes] = await Promise.all([
           apiFetch('/api/children').then(r => r.json()),
-          fetch('/api/ieps').then(r => r.json()),
-          fetch('/api/therapy-sessions').then(r => r.json()),
-          fetch('/api/research-papers').then(r => r.json())
+          apiFetch('/api/ieps').then(r => r.json()),
+          apiFetch('/api/therapy-sessions').then(r => r.json()),
+          apiFetch('/api/research-papers').then(r => r.json())
         ]);
 
         if (cRes.success && cRes.data?.length) setChildrenList(cRes.data);
