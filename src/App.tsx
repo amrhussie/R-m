@@ -118,7 +118,7 @@ function AppContent() {
         if (sRes.success && sRes.data?.length) setTherapySessions(sRes.data);
         if (rRes.success && rRes.data?.length) setResearchPapers(rRes.data);
       } catch (err) {
-        console.warn("Using offline mock state for REST API:", err);
+        console.error("Authorized data API is not available yet:", err);
       }
     };
     fetchData();
@@ -128,65 +128,16 @@ function AppContent() {
     setLang(prev => (prev === 'ar' ? 'en' : 'ar'));
   };
 
-  const handleSaveIEP = (newPlan: IEPPlan) => {
-    setIepPlans(prev => [newPlan, ...prev]);
-    // Also send to backend
-    fetch('/api/ieps', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newPlan)
-    }).catch(console.error);
+  const handleSaveIEP = (_newPlan: IEPPlan) => {
+    window.alert('حفظ الخطط الفردية متوقف مؤقتاً حتى اكتمال ربط جداول Supabase واختبارات الصلاحيات.');
   };
 
-  const handleAddChild = (newChildPartial: Partial<Child>) => {
-    const newChild: Child = {
-      id: `c${Date.now()}`,
-      name: newChildPartial.name || 'طفل جديد',
-      age: newChildPartial.age || 6,
-      gender: newChildPartial.gender || 'ذكر',
-      diagnosis: newChildPartial.diagnosis || 'تأخر حركي ونمائي',
-      disabilityType: newChildPartial.disabilityType || 'إعاقة نمائية',
-      medicalHistory: newChildPartial.medicalHistory || 'سجل متتابع',
-      goals: newChildPartial.goals || ['تحسين التوازن والأداء السلوكي'],
-      motorScore: 72,
-      cognitiveScore: 78,
-      engagementLevel: 85,
-      improvementPrediction: 82,
-      assignedTherapist: 'د. معالج متناوب',
-      assignedTeacher: 'أ. معلم تربية خاصة',
-      parentName: 'ولي الأمر',
-      parentPhone: '+966 50 000 0000',
-      avatar: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150&auto=format&fit=crop&q=80'
-    };
-
-    setChildrenList(prev => [newChild, ...prev]);
-    fetch('/api/children', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newChild)
-    }).catch(console.error);
+  const handleAddChild = (_newChildPartial: Partial<Child>) => {
+    window.alert('إضافة ملفات الأطفال متوقفة حتى اكتمال واجهة البيانات متعددة المؤسسات واختبارات RLS.');
   };
 
-  const handleAddSession = (sessionPartial: Partial<TherapySession>) => {
-    const newSession: TherapySession = {
-      id: `sess-${Date.now()}`,
-      childId: sessionPartial.childId || 'c1',
-      childName: sessionPartial.childName || 'يوسف أحمد',
-      therapistName: sessionPartial.therapistName || 'د. المعالج',
-      exercise: sessionPartial.exercise || 'تمرين حركي شامل',
-      category: sessionPartial.category || 'تأهيل حركي',
-      durationMinutes: sessionPartial.durationMinutes || 40,
-      progressPercent: sessionPartial.progressPercent || 80,
-      sessionDate: new Date().toISOString().split('T')[0],
-      notes: sessionPartial.notes || 'جلسة متقدمة'
-    };
-
-    setTherapySessions(prev => [newSession, ...prev]);
-    fetch('/api/therapy-sessions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newSession)
-    }).catch(console.error);
+  const handleAddSession = (_sessionPartial: Partial<TherapySession>) => {
+    window.alert('تسجيل الجلسات متوقف مؤقتاً حتى اكتمال ربط قاعدة البيانات واختبارات صلاحيات الأخصائي.');
   };
 
   const handleToggleExercise = (exId: string) => {
