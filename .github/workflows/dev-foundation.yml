@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - fix/rm-neuroai-dev-foundation
+  pull_request:
+    branches:
+      - feat/rm-neuroai-supabase-auth
   workflow_dispatch:
 
 permissions:
