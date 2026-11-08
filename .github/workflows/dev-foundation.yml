@@ -1,0 +1,47 @@
+name: RM NeuroAI development foundation
+
+on:
+  push:
+    branches:
+      - fix/rm-neuroai-dev-foundation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rm-neuroai-dev-foundation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lockfile, typecheck, and production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout development branch
+        uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Generate candidate Bun lockfile
+        run: bun install --lockfile-only
+
+      - name: Upload generated lockfile for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rm-neuroai-bun-lock-candidate
+          path: bun.lock
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Verify reproducible dependency installation
+        run: bun install --frozen-lockfile
+
+      - name: TypeScript validation
+        run: bun run lint
+
+      - name: Production build
+        run: bun run build
