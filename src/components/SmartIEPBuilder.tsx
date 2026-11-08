@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../lib/api';
 import { Child, IEPPlan } from '../types';
 import { 
   FileText, 
@@ -65,7 +66,7 @@ export const SmartIEPBuilder: React.FC<SmartIEPBuilderProps> = ({
     setSavedSuccess(false);
 
     try {
-      const res = await fetch('/api/gemini/generate-iep', {
+      const res = await apiFetch('/api/gemini/generate-iep', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

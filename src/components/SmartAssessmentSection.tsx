@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { apiFetch } from '../lib/api';
 import { Child, Assessment } from '../types';
 import { 
   Activity, 
@@ -185,7 +186,7 @@ export const SmartAssessmentSection: React.FC<SmartAssessmentSectionProps> = ({ 
   const handleRunAIAnalysis = async () => {
     setAiAnalyzing(true);
     try {
-      const res = await fetch('/api/gemini/analyze-pose', {
+      const res = await apiFetch('/api/gemini/analyze-pose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

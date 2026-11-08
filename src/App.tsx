@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { PageId, Child, IEPPlan, TherapySession, ResearchPaper, HomeExercise } from './types';
-import { INITIAL_CHILDREN, INITIAL_HOME_EXERCISES } from './data/mockData';
+import { INITIAL_HOME_EXERCISES } from './data/mockData';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { HomeSection } from './components/HomeSection';
@@ -13,15 +14,17 @@ import { ResearchHub } from './components/ResearchHub';
 import { TherapyGamesSection } from './components/TherapyGamesSection';
 import { AIFamilyChatModal } from './components/AIFamilyChatModal';
 import { ContactSupportModal } from './components/ContactSupportModal';
+import { AuthGate } from './components/AuthGate';
+import { apiFetch } from './lib/api';
 
-export default function App() {
+function AppContent() {
   const [currentPage, setCurrentPage] = useState<PageId>('home');
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
   const [isFamilyChatOpen, setIsFamilyChatOpen] = useState(false);
   const [isContactSupportOpen, setIsContactSupportOpen] = useState(false);
 
   // Application Data State
-  const [childrenList, setChildrenList] = useState<Child[]>(INITIAL_CHILDREN);
+  const [childrenList, setChildrenList] = useState<Child[]>([]);
   const [iepPlans, setIepPlans] = useState<IEPPlan[]>([]);
   const [therapySessions, setTherapySessions] = useState<TherapySession[]>([]);
   const [researchPapers, setResearchPapers] = useState<ResearchPaper[]>([]);
@@ -32,10 +35,10 @@ export default function App() {
     const fetchData = async () => {
       try {
         const [cRes, iRes, sRes, rRes] = await Promise.all([
-          fetch('/api/children').then(r => r.json()),
-          fetch('/api/ieps').then(r => r.json()),
-          fetch('/api/therapy-sessions').then(r => r.json()),
-          fetch('/api/research-papers').then(r => r.json())
+          apiFetch('/api/children').then(r => r.json()),
+          apiFetch('/api/ieps').then(r => r.json()),
+          apiFetch('/api/therapy-sessions').then(r => r.json()),
+          apiFetch('/api/research-papers').then(r => r.json())
         ]);
 
         if (cRes.success && cRes.data?.length) setChildrenList(cRes.data);
@@ -43,7 +46,7 @@ export default function App() {
         if (sRes.success && sRes.data?.length) setTherapySessions(sRes.data);
         if (rRes.success && rRes.data?.length) setResearchPapers(rRes.data);
       } catch (err) {
-        console.warn("Using offline mock state for REST API:", err);
+        console.error("Authorized data API is not available yet:", err);
       }
     };
     fetchData();
@@ -53,65 +56,16 @@ export default function App() {
     setLang(prev => (prev === 'ar' ? 'en' : 'ar'));
   };
 
-  const handleSaveIEP = (newPlan: IEPPlan) => {
-    setIepPlans(prev => [newPlan, ...prev]);
-    // Also send to backend
-    fetch('/api/ieps', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newPlan)
-    }).catch(console.error);
+  const handleSaveIEP = (_newPlan: IEPPlan) => {
+    window.alert('حفظ الخطط الفردية متوقف مؤقتاً حتى اكتمال ربط جداول Supabase واختبارات الصلاحيات.');
   };
 
-  const handleAddChild = (newChildPartial: Partial<Child>) => {
-    const newChild: Child = {
-      id: `c${Date.now()}`,
-      name: newChildPartial.name || 'طفل جديد',
-      age: newChildPartial.age || 6,
-      gender: newChildPartial.gender || 'ذكر',
-      diagnosis: newChildPartial.diagnosis || 'تأخر حركي ونمائي',
-      disabilityType: newChildPartial.disabilityType || 'إعاقة نمائية',
-      medicalHistory: newChildPartial.medicalHistory || 'سجل متتابع',
-      goals: newChildPartial.goals || ['تحسين التوازن والأداء السلوكي'],
-      motorScore: 72,
-      cognitiveScore: 78,
-      engagementLevel: 85,
-      improvementPrediction: 82,
-      assignedTherapist: 'د. معالج متناوب',
-      assignedTeacher: 'أ. معلم تربية خاصة',
-      parentName: 'ولي الأمر',
-      parentPhone: '+966 50 000 0000',
-      avatar: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150&auto=format&fit=crop&q=80'
-    };
-
-    setChildrenList(prev => [newChild, ...prev]);
-    fetch('/api/children', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newChild)
-    }).catch(console.error);
+  const handleAddChild = (_newChildPartial: Partial<Child>) => {
+    window.alert('إضافة ملفات الأطفال متوقفة حتى اكتمال واجهة البيانات متعددة المؤسسات واختبارات RLS.');
   };
 
-  const handleAddSession = (sessionPartial: Partial<TherapySession>) => {
-    const newSession: TherapySession = {
-      id: `sess-${Date.now()}`,
-      childId: sessionPartial.childId || 'c1',
-      childName: sessionPartial.childName || 'يوسف أحمد',
-      therapistName: sessionPartial.therapistName || 'د. المعالج',
-      exercise: sessionPartial.exercise || 'تمرين حركي شامل',
-      category: sessionPartial.category || 'تأهيل حركي',
-      durationMinutes: sessionPartial.durationMinutes || 40,
-      progressPercent: sessionPartial.progressPercent || 80,
-      sessionDate: new Date().toISOString().split('T')[0],
-      notes: sessionPartial.notes || 'جلسة متقدمة'
-    };
-
-    setTherapySessions(prev => [newSession, ...prev]);
-    fetch('/api/therapy-sessions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newSession)
-    }).catch(console.error);
+  const handleAddSession = (_sessionPartial: Partial<TherapySession>) => {
+    window.alert('تسجيل الجلسات متوقف مؤقتاً حتى اكتمال ربط قاعدة البيانات واختبارات صلاحيات الأخصائي.');
   };
 
   const handleToggleExercise = (exId: string) => {
@@ -179,13 +133,20 @@ export default function App() {
         )}
 
         {currentPage === 'parent-dashboard' && (
-          <ParentDashboard
-            child={childrenList[0] || INITIAL_CHILDREN[0]}
-            exercises={homeExercises}
-            onToggleExercise={handleToggleExercise}
-            onOpenFamilyChat={() => setIsFamilyChatOpen(true)}
-            lang={lang}
-          />
+          childrenList.length > 0 ? (
+            <ParentDashboard
+              child={childrenList[0]}
+              exercises={homeExercises}
+              onToggleExercise={handleToggleExercise}
+              onOpenFamilyChat={() => setIsFamilyChatOpen(true)}
+              lang={lang}
+            />
+          ) : (
+            <section className="rounded-2xl border border-slate-200 bg-white p-8 text-right">
+              <h2 className="text-lg font-bold text-slate-900">لا توجد ملفات أطفال مرتبطة بحسابك</h2>
+              <p className="mt-2 text-sm text-slate-600">ستظهر الملفات بعد اكتمال ربط قاعدة البيانات وتعيين صلاحيات المركز أو ولي الأمر.</p>
+            </section>
+          )
         )}
 
         {currentPage === 'research-hub' && (
@@ -223,4 +184,9 @@ export default function App() {
       />
     </div>
   );
+}
+
+
+export default function App() {
+  return <AuthGate><AppContent /></AuthGate>;
 }

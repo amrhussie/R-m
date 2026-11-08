@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 
 dotenv.config();
 
@@ -32,330 +33,6 @@ const getGeminiClient = () => {
   });
 };
 
-// --- IN-MEMORY DATABASE & SEED DATA (Arabic Primary) ---
-interface Child {
-  id: string;
-  name: string;
-  age: number;
-  gender: string;
-  diagnosis: string;
-  disabilityType: string;
-  medicalHistory: string;
-  goals: string[];
-  motorScore: number;
-  cognitiveScore: number;
-  engagementLevel: number;
-  improvementPrediction: number;
-  assignedTherapist: string;
-  assignedTeacher: string;
-  parentName: string;
-  parentPhone: string;
-  avatar: string;
-}
-
-interface IEPPlan {
-  id: string;
-  childId: string;
-  childName: string;
-  diagnosis: string;
-  shortTermGoals: string[];
-  longTermGoals: string[];
-  activities: string[];
-  therapyTypes: string[];
-  evaluationCriteria: string;
-  accommodations: string[];
-  createdDate: string;
-  status: 'نشط' | 'مكتمل' | 'قيد المراجعة';
-}
-
-interface Assessment {
-  id: string;
-  childId: string;
-  childName: string;
-  assessmentType: string;
-  date: string;
-  gaitSymmetryScore: number;
-  postureBalanceScore: number;
-  romScore: number;
-  cognitiveFocusScore: number;
-  overallScore: number;
-  notes: string;
-  aiRecommendations: string[];
-}
-
-interface TherapySession {
-  id: string;
-  childId: string;
-  childName: string;
-  therapistName: string;
-  exercise: string;
-  category: 'تأهيل حركي' | 'تربية خاصة' | 'علاج وظيفي' | 'تخاطب';
-  durationMinutes: number;
-  progressPercent: number;
-  sessionDate: string;
-  notes: string;
-}
-
-interface ResearchPaper {
-  id: string;
-  titleAr: string;
-  titleEn: string;
-  category: 'التربية الخاصة' | 'التأهيل الحركي' | 'الذكاء الاصطناعي الطبي' | 'التقنيات المساعدة';
-  author: string;
-  year: number;
-  journal: string;
-  summaryAr: string;
-  keyFindings: string[];
-  readTime: string;
-}
-
-// Initial Database State
-let childrenDB: Child[] = [
-  {
-    id: "c1",
-    name: "يوسف أحمد العتيبي",
-    age: 7,
-    gender: "ذكر",
-    diagnosis: "شلل دماغي حركي خفيف (Spastic Diplegia)",
-    disabilityType: "إعاقة حركية ونموية",
-    medicalHistory: "صعوبات في الاتزان أثناء المشي، قصر في الوتر العرقوبي، تحسن ملحوظ بالتمارين",
-    goals: ["تحسين نمط المشي والتوازن", "زيادة مدى حركة المفاصل السفلى", "تعزيز الاعتماد على النفس في ارتداء الملابس"],
-    motorScore: 78,
-    cognitiveScore: 85,
-    engagementLevel: 92,
-    improvementPrediction: 88,
-    assignedTherapist: "د. خالد السعيد (علاج طبيعي)",
-    assignedTeacher: "أ. أمل الحربي (تربية خاصة)",
-    parentName: "أحمد العتيبي",
-    parentPhone: "+966 50 123 4567",
-    avatar: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=150&auto=format&fit=crop&q=80"
-  },
-  {
-    id: "c2",
-    name: "سارة محمد الشمري",
-    age: 6,
-    gender: "أنثى",
-    diagnosis: "طيف التوحد (درجة متوسطة) + تأخر حركي دقيق",
-    disabilityType: "اضطراب النماء العصبي",
-    medicalHistory: "صعوبة التواصل اللفظي المباشر، فرط حساسية لمسية، إنجاز ممتاز مع الألعاب التفاعلية Visuals",
-    goals: ["التواصل البصري والتفاعل اللفظي", "تحسين المهارات الحركية الدقيقة (مسك القلم)", "تقليل الحركات التكرارية"],
-    motorScore: 65,
-    cognitiveScore: 72,
-    engagementLevel: 80,
-    improvementPrediction: 82,
-    assignedTherapist: "د. مريم الشريف (علاج وظيفي)",
-    assignedTeacher: "أ. نورة الغامدي (تربية خاصة)",
-    parentName: "أم سارة",
-    parentPhone: "+966 55 987 6543",
-    avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80"
-  },
-  {
-    id: "c3",
-    name: "عمر فيصل القحطاني",
-    age: 9,
-    gender: "ذكر",
-    diagnosis: "متلازمة داون + ضعف العضلات العام (Hypotonia)",
-    disabilityType: "متلازمة جينية وتأخر نماء شامل",
-    medicalHistory: "مرونة عالية في المفاصل، قلة الثبات الجذعي، استجابة عالية للتعزيز الصوتي واللعب",
-    goals: ["تقوية عضلات الجذع والظهر", "تحسين ثبات الجلوس والوقوف", "تطوير النطق واللغة استقبالاً وتعبيرًا"],
-    motorScore: 70,
-    cognitiveScore: 75,
-    engagementLevel: 95,
-    improvementPrediction: 85,
-    assignedTherapist: "د. طارق الزهراني (تأهيل حركي)",
-    assignedTeacher: "أ. حسام الدوسري (تربية خاصة)",
-    parentName: "فيصل القحطاني",
-    parentPhone: "+966 54 321 0987",
-    avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80"
-  },
-  {
-    id: "c4",
-    name: "ليان فهد المطيري",
-    age: 5,
-    gender: "أنثى",
-    diagnosis: "تأخر نمائي حركي شامل (Developmental Delay)",
-    disabilityType: "تأخر نمائي",
-    medicalHistory: "تأخر الوقوف والمشي بدون مساعدة، تحسن استجابة التوازن بواسطة MoveVision AI",
-    goals: ["المشي المستقل لمسافة 10 أمتار", "تحسين التنسيق الحركي بين العين واليد"],
-    motorScore: 62,
-    cognitiveScore: 88,
-    engagementLevel: 89,
-    improvementPrediction: 90,
-    assignedTherapist: "د. سارة الراشد (تأهيل أطفال)",
-    assignedTeacher: "أ. هند المالكي (تربية خاصة)",
-    parentName: "فهد المطيري",
-    parentPhone: "+966 56 654 3210",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80"
-  }
-];
-
-let iepDB: IEPPlan[] = [
-  {
-    id: "iep-101",
-    childId: "c1",
-    childName: "يوسف أحمد العتيبي",
-    diagnosis: "شلل دماغي حركي خفيف (Spastic Diplegia)",
-    shortTermGoals: [
-      "المشي بخطوات متوازنة لمسافة 15 متراً باستخدام المشاية التدريبية في غضون 4 أسابيع.",
-      "أداء تمرين إطالة الوتر العرقوبي لمدة 30 ثانية لكل رجل يومياً بمعونة الأسرة.",
-      "الوقوف على قدم واحدة بدعم بسيط لمدة 5 ثوانٍ."
-    ],
-    longTermGoals: [
-      "المشي المستقل بدعم طفيف جداً داخل الفصل الدراسي والمدرسة بنهاية الفصل الحالي.",
-      "الصعود والهبوط على الدرج المساعد بمهارة وأمان."
-    ],
-    activities: [
-      "جلسات تحليل التوازن الحركي باستخدام كاميرا MoveVision AI مرتين أسبوعياً.",
-      "لعبة التوازن الرقمية (Balance Master) لتحفيز الثبات الجذعي.",
-      "تمارين المقاومة الخفيفة وتقوية العضلة الرباعية."
-    ],
-    therapyTypes: ["علاج طبيعي حركي", "تربية خاصة وتعديل سلوك", "ألعاب علاجية ذكية"],
-    evaluationCriteria: "تقييم أسبوعي عبر كاميرا التحليل الحركي + مراجعة نسبة تحقيق الهدف الحركي 85%.",
-    accommodations: ["توفير كرسي مخصص بزاوية إسناد 90 درجة", "وقت إضافي للتنقل بين الفصول"],
-    createdDate: "2026-07-20",
-    status: "نشط"
-  },
-  {
-    id: "iep-102",
-    childId: "c2",
-    childName: "سارة محمد الشمري",
-    diagnosis: "طيف التوحد + تأخر حركي دقيق",
-    shortTermGoals: [
-      "الإمساك الصحيح بالمرسام أو الألوان لمدة 5 دقائق متواصلة أثناء أداء النشاط.",
-      "الاستجابة لنداء الاسم والتواصل البصري لمدة 4 ثوانٍ مع المعالج."
-    ],
-    longTermGoals: [
-      "كتابة اسمها وبعض الحرف البسيطة باستخدام الوسائل البصرية المساعدة.",
-      "المشاركة في ألعاب جماعية تفاعلية مع أقرانها دقيقة بحد أدنى 10 دقائق."
-    ],
-    activities: [
-      "تطبيق تمارين الأصابع بالصلصال الطبي والرسم باللمس.",
-      "لعبة صيد النجوم الرقمية لتنمية التنسيق بين العين واليد.",
-      "استخدام جداول الصور البصرية للأنشطة اليومية."
-    ],
-    therapyTypes: ["علاج وظيفي", "تأهيل نماء عصبي", "مساعد الأسرة الذكي"],
-    evaluationCriteria: "ملاحظة السلوك اليومي + مقياس التفاعل البصري الحركي المدمج بالمنصة.",
-    accommodations: ["تقليل المشتتات الصوتية بالبيئة الصفية", "استخدام بطاقات التواصل PECS الرقمية"],
-    createdDate: "2026-07-18",
-    status: "نشط"
-  }
-];
-
-let assessmentsDB: Assessment[] = [
-  {
-    id: "ass-201",
-    childId: "c1",
-    childName: "يوسف أحمد العتيبي",
-    assessmentType: "تقييم الحركة والتوازن بالذكاء الاصطناعي (MoveVision AI)",
-    date: "2026-07-24",
-    gaitSymmetryScore: 82,
-    postureBalanceScore: 76,
-    romScore: 75,
-    cognitiveFocusScore: 88,
-    overallScore: 80,
-    notes: "يظهر يوسف تحسناً كبيراً في استقامة الركبة أثناء ثني المفصل، مع تقليل ميلان الحوض الأيسر بنسبة 12%.",
-    aiRecommendations: [
-      "الاستمرار في تمارين الإطالة اليومية للوتر العرقوبي خلف الركبة.",
-      "زيادة تكرار لعبة Balance Master بمعدل 10 دقائق يومياً.",
-      "استخدام الحذاء الطبي المدعم أثناء التمارين المنزلية."
-    ]
-  },
-  {
-    id: "ass-202",
-    childId: "c2",
-    childName: "سارة محمد الشمري",
-    assessmentType: "تقييم المهارات الحركية الدقيقة والتواصل البصري",
-    date: "2026-07-22",
-    gaitSymmetryScore: 70,
-    postureBalanceScore: 68,
-    romScore: 72,
-    cognitiveFocusScore: 82,
-    overallScore: 73,
-    notes: "تحسن في تركيز انتباه سارة أثناء الألعاب العلاجية التفاعلية مع زيادة دقة اللمس الشاشات 20%.",
-    aiRecommendations: [
-      "تطبيق نظام المكافآت التفاعلي المصمم عبر Copilot.",
-      "تدرج تمارين القبضة الدقيقة من الحجم الكبير إلى الأصغر."
-    ]
-  }
-];
-
-let therapySessionsDB: TherapySession[] = [
-  {
-    id: "sess-301",
-    childId: "c1",
-    childName: "يوسف أحمد العتيبي",
-    therapistName: "د. خالد السعيد",
-    exercise: "تمرين توازن الجذع وتقوية الرباعية + مشي الموانع",
-    category: "تأهيل حركي",
-    durationMinutes: 45,
-    progressPercent: 85,
-    sessionDate: "2026-07-25",
-    notes: "أداء ممتاز وتفاعل عالي بدون إجهاد. استطاع إكمال 4 جولات مشي موانع."
-  },
-  {
-    id: "sess-302",
-    childId: "c2",
-    childName: "سارة محمد الشمري",
-    therapistName: "د. مريم الشريف",
-    exercise: "تنسيق اليد والعين + ألعاب تحفيز لمسي",
-    category: "علاج وظيفي",
-    durationMinutes: 30,
-    progressPercent: 78,
-    sessionDate: "2026-07-24",
-    notes: "استجابة ممتازة للأصوات التفاعلية بالمنصة وزيادة وقت التركيز إلى 12 دقيقة متواصلة."
-  }
-];
-
-let researchPapersDB: ResearchPaper[] = [
-  {
-    id: "res-1",
-    titleAr: "تأثير تقنيات التتبع الحركي بالذكاء الاصطناعي على إعادة تأهيل الأطفال المصابين بالشلل الدماغي",
-    titleEn: "Impact of AI Computer Vision Pose Estimation on Pediatric Cerebral Palsy Rehabilitation",
-    category: "التأهيل الحركي",
-    author: "د. عبد الله الغامدي، د. إيميلي روبرتس",
-    year: 2025,
-    journal: "الصحيفة الدولية لطب الأعصاب والتقنيات التأهيلية",
-    summaryAr: "تبين هذه الدراسة أن استخدام رؤية الكمبيوتر (Computer Vision) لقياس زوايا المفاصل والتناظر الحركي يزيد من سرعة تحقيق أهداف التوازن بنسبة 34% مقارنة بالقياس المباشر التقليدي.",
-    keyFindings: [
-      "دقة تتجاوز 94% في قياس زوايا مفصل الركبة والحوض بدون مستشعرات قابلة للارتداء.",
-      "زيادة التزام الأطفال بالتمارين المنزلية بنسبة 45% عند استخدام الألعاب العلاجية التفاعلية.",
-      "تقليل الوقت اللازم لإعداد خطط IEP المخصصة بنسبة 60% بفضل مساعدات AI Copilot."
-    ],
-    readTime: "5 دقائق"
-  },
-  {
-    id: "res-2",
-    titleAr: "الذكاء الاصطناعي التوليدي في تصميم الخطة التربوية الفردية (IEP) لذوي اضطراب طيف التوحد",
-    titleEn: "Generative AI Copilots in IEP Goal Generation for Children with Autism Spectrum Disorder",
-    category: "التربية الخاصة",
-    author: "د. سارة الراشد، د. محمد الخالد",
-    year: 2026,
-    journal: "مجلة أبحاث التربية الخاصة والتكنولوجيا",
-    summaryAr: "تناقش الورقة كيفية الاستفادة من النماذج اللغوية الكبيرة (LLMs) لإنشاء أهداف SMART محددة ومدروسة نمائيًا وتطوير الأنشطة الموائمة لاحتياجات الطفل الفردية.",
-    keyFindings: [
-      "الأهداف المقترحة بواسطة الذكاء الاصطناعي تلائم معايير SMART بدقة 91%.",
-      "المعلمون أقروا بتوفير 4-6 ساعات أسبوعياً في توثيق الخطط وتوليد التقارير.",
-      "زيادة رضا أولياء الأمور عن التقارير الدورية الشاملة المترجمة للغة العربية."
-    ],
-    readTime: "7 دقائق"
-  },
-  {
-    id: "res-3",
-    titleAr: "تأثير التمارين العلاجية المنزلية الموجهة ذكائياً على القوة العضلية لدى أطفال متلازمة داون",
-    titleEn: "AI-Guided Home Telerehabilitation for Muscle Tone Improvement in Down Syndrome",
-    category: "التقنيات المساعدة",
-    author: "د. ياسمين الشريف، د. جون سميث",
-    year: 2025,
-    journal: "مجلة التأهيل الطبي والتمريض الأطفالي",
-    summaryAr: "تقيم الدراسة أثر المتابعة اليومية التفاعلية عبر تطبيقات الهاتف الذكي على استمرار الأسرة في تطبيق التمارين الموصى بها وتحسين المقوية العضلية للجذع.",
-    keyFindings: [
-      "تحسن بنسبة 28% في ثبات القامة ومقوية الجذع بعد 8 أسابيع من التمارين المنزلية الذكية.",
-      "ارتفاع نسبة إكمال التدريبات المنزلية من 40% إلى 82% بفضل المساعد التفاعلي العائلي."
-    ],
-    readTime: "4 دقائق"
-  }
-];
-
 // --- REST API ENDPOINTS ---
 
 // Healthcheck
@@ -363,117 +40,64 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", platform: "RM NeuroAI Platform", time: new Date().toISOString() });
 });
 
-// Children Endpoints
-app.get("/api/children", (req, res) => {
-  res.json({ success: true, data: childrenDB });
-});
+type AuthenticatedRequest = express.Request & { supabase?: SupabaseClient; authUser?: User };
 
-app.get("/api/children/:id", (req, res) => {
-  const child = childrenDB.find(c => c.id === req.params.id);
-  if (!child) {
-    return res.status(404).json({ success: false, error: "Child not found" });
+// Verify every API access token with Supabase Auth. The scoped client forwards the same
+// user JWT to PostgREST so PostgreSQL RLS, not a service-role key, controls data access.
+app.use("/api", async (req, res, next) => {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+  const match = (req.header("authorization") || "").match(/^Bearer\s+(.+)$/i);
+
+  if (!url || !key) {
+    return res.status(503).json({ success: false, error: "Supabase server configuration is missing." });
   }
-  res.json({ success: true, data: child });
+  if (!match) return res.status(401).json({ success: false, error: "Authentication required." });
+
+  const token = match[1];
+  try {
+    const authClient = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    });
+    const { data, error } = await authClient.auth.getUser(token);
+    if (error || !data.user) {
+      return res.status(401).json({ success: false, error: "Invalid or expired session." });
+    }
+
+    const requestClient = createClient(url, key, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    });
+    const authenticatedRequest = req as AuthenticatedRequest;
+    authenticatedRequest.authUser = data.user;
+    authenticatedRequest.supabase = requestClient;
+    return next();
+  } catch (error) {
+    console.error("Supabase token verification failed:", error);
+    return res.status(503).json({ success: false, error: "Authentication service is temporarily unavailable." });
+  }
 });
 
-app.post("/api/children", (req, res) => {
-  const newChild: Child = {
-    id: `c${Date.now()}`,
-    name: req.body.name || "طفل جديد",
-    age: Number(req.body.age) || 6,
-    gender: req.body.gender || "ذكر",
-    diagnosis: req.body.diagnosis || "غير محدد",
-    disabilityType: req.body.disabilityType || "تأخر نمائي",
-    medicalHistory: req.body.medicalHistory || "لا يوجد ملاحظات سابقة",
-    goals: req.body.goals || ["تحسين المهارات الحركية"],
-    motorScore: 70,
-    cognitiveScore: 75,
-    engagementLevel: 85,
-    improvementPrediction: 80,
-    assignedTherapist: req.body.assignedTherapist || "د. معالج متناوب",
-    assignedTeacher: req.body.assignedTeacher || "أ. معلم خاص",
-    parentName: req.body.parentName || "ولي الأمر",
-    parentPhone: req.body.parentPhone || "+966 50 000 0000",
-    avatar: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=150&auto=format&fit=crop&q=80"
-  };
-  childrenDB.unshift(newChild);
-  res.json({ success: true, data: newChild });
-});
+// Legacy in-memory data endpoints are disabled until tenant-scoped Supabase queries are implemented.
+// This prevents prototype child profiles and non-persistent writes from being exposed as application data.
+const dataMigrationPending = (_req: express.Request, res: express.Response) => {
+  res.status(503).json({
+    success: false,
+    code: "DATA_LAYER_MIGRATION_PENDING",
+    error: "This endpoint is temporarily disabled while its tenant-scoped Supabase implementation is completed.",
+  });
+};
 
-// IEP Endpoints
-app.get("/api/ieps", (req, res) => {
-  res.json({ success: true, data: iepDB });
-});
+app.all("/api/children", dataMigrationPending);
+app.all("/api/children/:id", dataMigrationPending);
+app.all("/api/ieps", dataMigrationPending);
+app.all("/api/assessments", dataMigrationPending);
+app.all("/api/therapy-sessions", dataMigrationPending);
+app.all("/api/research-papers", dataMigrationPending);
 
-app.post("/api/ieps", (req, res) => {
-  const newIEP: IEPPlan = {
-    id: `iep-${Date.now()}`,
-    childId: req.body.childId || "c1",
-    childName: req.body.childName || "طفل بدون اسم",
-    diagnosis: req.body.diagnosis || "تشخيص عام",
-    shortTermGoals: req.body.shortTermGoals || [],
-    longTermGoals: req.body.longTermGoals || [],
-    activities: req.body.activities || [],
-    therapyTypes: req.body.therapyTypes || ["علاج طبيعي", "تربية خاصة"],
-    evaluationCriteria: req.body.evaluationCriteria || "ملاحظة أسبوعية",
-    accommodations: req.body.accommodations || ["تكييف بيئي بسيط"],
-    createdDate: new Date().toISOString().split("T")[0],
-    status: "نشط"
-  };
-  iepDB.unshift(newIEP);
-  res.json({ success: true, data: newIEP });
-});
-
-// Assessments
-app.get("/api/assessments", (req, res) => {
-  res.json({ success: true, data: assessmentsDB });
-});
-
-app.post("/api/assessments", (req, res) => {
-  const newAss: Assessment = {
-    id: `ass-${Date.now()}`,
-    childId: req.body.childId || "c1",
-    childName: req.body.childName || "طفل",
-    assessmentType: req.body.assessmentType || "تقييم حركي عام",
-    date: new Date().toISOString().split("T")[0],
-    gaitSymmetryScore: Number(req.body.gaitSymmetryScore) || 75,
-    postureBalanceScore: Number(req.body.postureBalanceScore) || 75,
-    romScore: Number(req.body.romScore) || 75,
-    cognitiveFocusScore: Number(req.body.cognitiveFocusScore) || 80,
-    overallScore: Number(req.body.overallScore) || 76,
-    notes: req.body.notes || "تم إجراء التقييم بنجاح.",
-    aiRecommendations: req.body.aiRecommendations || ["مواصلة التدريب التفاعلي"]
-  };
-  assessmentsDB.unshift(newAss);
-  res.json({ success: true, data: newAss });
-});
-
-// Therapy Sessions
-app.get("/api/therapy-sessions", (req, res) => {
-  res.json({ success: true, data: therapySessionsDB });
-});
-
-app.post("/api/therapy-sessions", (req, res) => {
-  const newSession: TherapySession = {
-    id: `sess-${Date.now()}`,
-    childId: req.body.childId || "c1",
-    childName: req.body.childName || "يوسف أحمد",
-    therapistName: req.body.therapistName || "د. المعالج",
-    exercise: req.body.exercise || "تمارين حركية شاملة",
-    category: req.body.category || "تأهيل حركي",
-    durationMinutes: Number(req.body.durationMinutes) || 40,
-    progressPercent: Number(req.body.progressPercent) || 80,
-    sessionDate: new Date().toISOString().split("T")[0],
-    notes: req.body.notes || "جلسة ممتازة"
-  };
-  therapySessionsDB.unshift(newSession);
-  res.json({ success: true, data: newSession });
-});
-
-// Research papers
-app.get("/api/research-papers", (req, res) => {
-  res.json({ success: true, data: researchPapersDB });
-});
+// AI endpoints accept child-related context but are not yet scoped to an authorized
+// child/organization relationship. Keep them closed until that authorization is implemented.
+app.use("/api/gemini", dataMigrationPending);
 
 // --- GEMINI AI POWERED ENDPOINTS ---
 
