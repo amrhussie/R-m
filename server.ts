@@ -95,6 +95,10 @@ app.all("/api/assessments", dataMigrationPending);
 app.all("/api/therapy-sessions", dataMigrationPending);
 app.all("/api/research-papers", dataMigrationPending);
 
+// AI endpoints accept child-related context but are not yet scoped to an authorized
+// child/organization relationship. Keep them closed until that authorization is implemented.
+app.use("/api/gemini", dataMigrationPending);
+
 // --- GEMINI AI POWERED ENDPOINTS ---
 
 // 1. IEP Generation Endpoint
