@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../lib/api';
 import { ResearchPaper } from '../types';
 import { 
   BookOpen, 
@@ -41,7 +42,7 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ papers, lang }) => {
     if (!researchTopicInput) return;
     setLoadingAI(true);
     try {
-      const res = await fetch('/api/gemini/research-assistant', {
+      const res = await apiFetch('/api/gemini/research-assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: researchTopicInput, topic: researchTopicInput })
