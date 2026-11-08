@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { apiFetch } from '../lib/api';
 import { Bot, Send, X, Sparkles, User, HeartHandshake } from 'lucide-react';
 
 interface AIFamilyChatModalProps {
@@ -57,7 +58,7 @@ export const AIFamilyChatModal: React.FC<AIFamilyChatModalProps> = ({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/gemini/family-chat', {
+      const res = await apiFetch('/api/gemini/family-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: currentPrompt })
